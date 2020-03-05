@@ -9,7 +9,7 @@ const getAmenities = (listOfAmenities, availableAmenityIds) => {
     .filter(loa => availableAmenityIds.includes(loa.id));
 };
 
-const mapData = data => {
+const mapListing = data => {
   const { pdp_listing_detail: listing } = data;
   const availableAmenityIds =
     listing.root_amenity_sections.find(l => l.id === 'available_amenities')
@@ -30,6 +30,19 @@ const mapError = error => ({
   message: error.err.message,
   url: error.err.config.url
 });
+
+const mapResults = data => {
+  const responses = data
+    .filter(d => d['response'] !== undefined)
+    .map(li => {
+      return mapListing(li.response.data);
+    });
+  const errors = data
+    .filter(d => d['err'] !== undefined)
+    .map(error => mapError(error));
+
+  return [{ listings: responses }, { errors }];
+};
 
 const getListings = async listingIds => {
   const requests = listingIds.map(listingId => {
@@ -56,16 +69,7 @@ const getListings = async listingIds => {
 
 const getListingData = async listingIds => {
   const listingData = await getListings(listingIds);
-  const responses = listingData
-    .filter(l => l['response'] !== undefined)
-    .map(li => {
-      return mapData(li.response.data);
-    });
-  const errors = listingData
-    .filter(l => l['err'] !== undefined)
-    .map(error => mapError(error));
-
-  const results = [{ listings: responses }, { errors }];
+  const results = mapResults(listingData);
   console.log(JSON.stringify(results, null, 4));
 };
 
