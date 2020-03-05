@@ -25,25 +25,22 @@ const mapData = data => {
   };
 };
 
-const getListingId = url => url.match(/\d{6,}/g);
-
-const getListings = async urls => {
-  let currentListingId;
-  const requests = urls.map(url => {
-    currentListingId = getListingId(url);
+const getListings = async listingIds => {
+  const requests = listingIds.map(listingId => {
     return axios
       .get(
-        `https://www.airbnb.co.uk/api/v2/pdp_listing_details/${currentListingId}?_format=for_rooms_show&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&`
+        `https://www.airbnb.co.uk/api/v2/pdp_listing_details/${listingId}?_format=for_rooms_show&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&`
       )
       .then(
-        response => ({ response }),
-        err => ({ err })
+        response => ({ response, listingId }),
+        err => ({ err, listingId })
       );
   });
   return axios
     .all(requests)
     .then(
       axios.spread((...args) => {
+        console.log(args);
         return args;
       })
     )
@@ -52,8 +49,8 @@ const getListings = async urls => {
     });
 };
 
-const getListingData = async urls => {
-  const listingData = await getListings(urls);
+const getListingData = async listingIds => {
+  const listingData = await getListings(listingIds);
   const responses = listingData
     .filter(l => l['response'] !== undefined)
     .map(li => {
@@ -63,8 +60,9 @@ const getListingData = async urls => {
     .filter(l => l['err'] !== undefined)
     .map(error => {
       return {
-        id: getListingId(error.err.config.url)[0] || '',
-        message: error.err.message
+        id: error.listingId,
+        message: error.err.message,
+        url: error.err.config.url
       };
     });
 
@@ -73,7 +71,10 @@ const getListingData = async urls => {
 };
 
 getListingData([
-  'https://www.airbnb.co.uk/rooms/14531512?s=51',
-  'https://www.airbnb.co.uk/rooms/19278160?s=51',
-  'https://www.airbnb.co.uk/rooms/1939240?s=51'
+  '14531512',
+  '19278160',
+  '1939240',
+  '2233443324424242',
+  null,
+  5
 ]);
