@@ -40,7 +40,6 @@ const getListings = async listingIds => {
     .all(requests)
     .then(
       axios.spread((...args) => {
-        console.log(args);
         return args;
       })
     )
