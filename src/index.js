@@ -20,6 +20,7 @@ const mapData = data => {
     amenities: getAmenities(listing.listing_amenities, availableAmenityIds),
     propertyType: listing.room_and_property_type || '',
     bathrooms: listing.bathroom_label || '',
+    bedroom: listing.bedroom_label || '',
     id: listing.id
   };
 };
