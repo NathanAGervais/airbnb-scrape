@@ -25,6 +25,12 @@ const mapData = data => {
   };
 };
 
+const mapError = error => ({
+  id: error.listingId,
+  message: error.err.message,
+  url: error.err.config.url
+});
+
 const getListings = async listingIds => {
   const requests = listingIds.map(listingId => {
     return axios
@@ -57,13 +63,7 @@ const getListingData = async listingIds => {
     });
   const errors = listingData
     .filter(l => l['err'] !== undefined)
-    .map(error => {
-      return {
-        id: error.listingId,
-        message: error.err.message,
-        url: error.err.config.url
-      };
-    });
+    .map(error => mapError(error));
 
   const results = [{ listings: responses }, { errors }];
   console.log(JSON.stringify(results, null, 4));
