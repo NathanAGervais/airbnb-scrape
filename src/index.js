@@ -10,61 +10,69 @@ const getAmenities = (listOfAmenities, availableAmenityIds) => {
 };
 
 const mapData = data => {
+  const { pdp_listing_detail: listing } = data;
   const availableAmenityIds =
-    data.root_amenity_sections.find(l => l.id === 'available_amenities')
+    listing.root_amenity_sections.find(l => l.id === 'available_amenities')
       .amenity_ids || [];
 
   return {
-    name: data.name,
-    amenities: getAmenities(data.listing_amenities, availableAmenityIds),
-    propertyType: data.room_and_property_type || '',
-    bathrooms: data.bathroom_label || ''
+    name: listing.name,
+    amenities: getAmenities(listing.listing_amenities, availableAmenityIds),
+    propertyType: listing.room_and_property_type || '',
+    bathrooms: listing.bathroom_label || '',
+    id: listing.id
   };
 };
 
+const getListingId = url => url.match(/\d{6,}/g);
+
 const getListings = async urls => {
   let currentListingId;
-  const calls = urls.map(url => {
-    currentListingId = url.match(/\d{8}/g);
+  const requests = urls.map(url => {
+    currentListingId = getListingId(url);
     return axios
       .get(
         `https://www.airbnb.co.uk/api/v2/pdp_listing_details/${currentListingId}?_format=for_rooms_show&key=d306zoyjsyarp7ifhu67rjxn52tv0t20&`
       )
-      .catch(error => {
-        if (error.response.status === 404) {
-          console.log(
-            `Listing with listing id: ${currentListingId} not found.`
-          );
-        }
-        if (error.response.status === 503) {
-          console.log(
-            `Unable to process listing with id:  ${currentListingId}, Service is currently unavailable`
-          );
-        }
-      });
+      .then(
+        response => ({ response }),
+        err => ({ err })
+      );
   });
   return axios
-    .all(calls)
-    .then(arrayOfResponses =>
-      arrayOfResponses.map(response => {
-        const {
-          data: { pdp_listing_detail }
-        } = response;
-        return mapData(pdp_listing_detail);
+    .all(requests)
+    .then(
+      axios.spread((...args) => {
+        return args;
       })
     )
-    .catch(error => {
-      return error;
+    .catch(err => {
+      throw err;
     });
 };
 
-async function getListingData(urls) {
+const getListingData = async urls => {
   const listingData = await getListings(urls);
+  const responses = listingData
+    .filter(l => l['response'] !== undefined)
+    .map(li => {
+      return mapData(li.response.data);
+    });
+  const errors = listingData
+    .filter(l => l['err'] !== undefined)
+    .map(error => {
+      return {
+        id: getListingId(error.err.config.url)[0] || '',
+        message: error.err.message
+      };
+    });
 
-  console.log(listingData);
-}
+  const results = [{ listings: responses }, { errors }];
+  console.log(JSON.stringify(results, null, 4));
+};
 
 getListingData([
-  'https://www.airbnb.co.uk/rooms/19278160?s=51'
-  // 'https://www.airbnb.co.uk/rooms/00000000?s=51'
+  'https://www.airbnb.co.uk/rooms/14531512?s=51',
+  'https://www.airbnb.co.uk/rooms/19278160?s=51',
+  'https://www.airbnb.co.uk/rooms/1939240?s=51'
 ]);
